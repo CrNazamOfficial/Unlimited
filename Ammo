@@ -1,5 +1,5 @@
-
 _G.InfiniteAmmoEnabled = false
+_G.KillingInProgress = false
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -8,6 +8,11 @@ local player = Players.LocalPlayer
 local ammoConnection = nil
 local currentTool = nil
 
+local WeaponsSystem = game:GetService("ReplicatedStorage"):WaitForChild("WeaponsSystem")
+local Network = WeaponsSystem:WaitForChild("Network")
+local WeaponHit = Network:WaitForChild("WeaponHit")
+local WeaponFired = Network:WaitForChild("WeaponFired")
+
 local function createMainGUI()
     local gui = Instance.new("ScreenGui")
     gui.Name = "MainGUI"
@@ -15,7 +20,6 @@ local function createMainGUI()
     gui.ResetOnSpawn = false
     gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
-    -- ICON MINIMIZE
     local iconButton = Instance.new("ImageButton")
     iconButton.Name = "MinimizedIcon"
     iconButton.Size = UDim2.new(0, 35, 0, 35)
@@ -41,7 +45,6 @@ local function createMainGUI()
     iconLabel.TextSize = 20
     iconLabel.Parent = iconButton
     
-    -- MAIN FRAME (150x180 untuk tambah kills input)
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0, 150, 0, 180)
@@ -111,7 +114,6 @@ local function createMainGUI()
     headerLine.BorderSizePixel = 0
     headerLine.Parent = mainFrame
     
-    -- INFINITE AMMO TOGGLE
     local toggleBtn = Instance.new("TextButton")
     toggleBtn.Size = UDim2.new(0.92, 0, 0, 24)
     toggleBtn.Position = UDim2.new(0.04, 0, 0, 28)
@@ -128,7 +130,6 @@ local function createMainGUI()
     toggleCorner.CornerRadius = UDim.new(0, 4)
     toggleCorner.Parent = toggleBtn
     
-    -- WEAPON LABEL
     local weaponLabel = Instance.new("TextLabel")
     weaponLabel.Size = UDim2.new(0.92, 0, 0, 14)
     weaponLabel.Position = UDim2.new(0.04, 0, 0, 56)
@@ -140,67 +141,68 @@ local function createMainGUI()
     weaponLabel.TextXAlignment = Enum.TextXAlignment.Left
     weaponLabel.Parent = mainFrame
     
-    -- KILLS INPUT
-    local killsInput = Instance.new("TextBox")
-    killsInput.Size = UDim2.new(0.92, 0, 0, 24)
-    killsInput.Position = UDim2.new(0.04, 0, 0, 74)
-    killsInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    killsInput.BorderColor3 = Color3.fromRGB(60, 60, 60)
-    killsInput.BorderSizePixel = 1
-    killsInput.Text = ""
-    killsInput.PlaceholderText = "Kills Amount..."
-    killsInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
-    killsInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    killsInput.Font = Enum.Font.Gotham
-    killsInput.TextSize = 8
-    killsInput.ClearTextOnFocus = false
-    killsInput.Parent = mainFrame
+    local usernameInput = Instance.new("TextBox")
+    usernameInput.Size = UDim2.new(0.92, 0, 0, 24)
+    usernameInput.Position = UDim2.new(0.04, 0, 0, 74)
+    usernameInput.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    usernameInput.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    usernameInput.BorderSizePixel = 1
+    usernameInput.Text = ""
+    usernameInput.PlaceholderText = "Username..."
+    usernameInput.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+    usernameInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    usernameInput.Font = Enum.Font.Gotham
+    usernameInput.TextSize = 8
+    usernameInput.ClearTextOnFocus = false
+    usernameInput.Parent = mainFrame
     
     local inputCorner = Instance.new("UICorner")
     inputCorner.CornerRadius = UDim.new(0, 4)
-    inputCorner.Parent = killsInput
+    inputCorner.Parent = usernameInput
     
-    -- SET KILLS BUTTON
-    local setKillsBtn = Instance.new("TextButton")
-    setKillsBtn.Size = UDim2.new(0.92, 0, 0, 24)
-    setKillsBtn.Position = UDim2.new(0.04, 0, 0, 102)
-    setKillsBtn.BackgroundColor3 = Color3.fromRGB(25, 100, 25)
-    setKillsBtn.BorderColor3 = Color3.fromRGB(80, 255, 80)
-    setKillsBtn.BorderSizePixel = 1
-    setKillsBtn.Text = "SET KILLS"
-    setKillsBtn.TextColor3 = Color3.fromRGB(80, 255, 80)
-    setKillsBtn.Font = Enum.Font.GothamBold
-    setKillsBtn.TextSize = 8
-    setKillsBtn.Parent = mainFrame
+    local killPlayerBtn = Instance.new("TextButton")
+    killPlayerBtn.Size = UDim2.new(0.45, 0, 0, 24)
+    killPlayerBtn.Position = UDim2.new(0.04, 0, 0, 102)
+    killPlayerBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+    killPlayerBtn.BorderColor3 = Color3.fromRGB(255, 80, 80)
+    killPlayerBtn.BorderSizePixel = 1
+    killPlayerBtn.Text = "KILL"
+    killPlayerBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    killPlayerBtn.Font = Enum.Font.GothamBold
+    killPlayerBtn.TextSize = 8
+    killPlayerBtn.Parent = mainFrame
     
-    local setKillsCorner = Instance.new("UICorner")
-    setKillsCorner.CornerRadius = UDim.new(0, 4)
-    setKillsCorner.Parent = setKillsBtn
+    local killPlayerCorner = Instance.new("UICorner")
+    killPlayerCorner.CornerRadius = UDim.new(0, 4)
+    killPlayerCorner.Parent = killPlayerBtn
     
-    -- CURRENT KILLS DISPLAY
-    local killsDisplay = Instance.new("TextLabel")
-    killsDisplay.Size = UDim2.new(0.92, 0, 0, 16)
-    killsDisplay.Position = UDim2.new(0.04, 0, 0, 130)
-    killsDisplay.BackgroundTransparency = 1
-    killsDisplay.Text = "Kills: 0"
-    killsDisplay.TextColor3 = Color3.fromRGB(100, 255, 100)
-    killsDisplay.Font = Enum.Font.GothamBold
-    killsDisplay.TextSize = 9
-    killsDisplay.Parent = mainFrame
+    local killAllBtn = Instance.new("TextButton")
+    killAllBtn.Size = UDim2.new(0.45, 0, 0, 24)
+    killAllBtn.Position = UDim2.new(0.51, 0, 0, 102)
+    killAllBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+    killAllBtn.BorderColor3 = Color3.fromRGB(255, 50, 50)
+    killAllBtn.BorderSizePixel = 1
+    killAllBtn.Text = "KILL ALL"
+    killAllBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+    killAllBtn.Font = Enum.Font.GothamBold
+    killAllBtn.TextSize = 8
+    killAllBtn.Parent = mainFrame
     
-    -- STATUS LABEL
+    local killAllCorner = Instance.new("UICorner")
+    killAllCorner.CornerRadius = UDim.new(0, 4)
+    killAllCorner.Parent = killAllBtn
+    
     local statusLabel = Instance.new("TextLabel")
-    statusLabel.Size = UDim2.new(0.92, 0, 0, 14)
-    statusLabel.Position = UDim2.new(0.04, 0, 0, 148)
+    statusLabel.Size = UDim2.new(0.92, 0, 0, 16)
+    statusLabel.Position = UDim2.new(0.04, 0, 0, 130)
     statusLabel.BackgroundTransparency = 1
     statusLabel.Text = "Ready"
     statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-    statusLabel.Font = Enum.Font.Gotham
-    statusLabel.TextSize = 7
+    statusLabel.Font = Enum.Font.GothamBold
+    statusLabel.TextSize = 9
     statusLabel.TextXAlignment = Enum.TextXAlignment.Left
     statusLabel.Parent = mainFrame
     
-    -- CREDIT
     local creditLabel = Instance.new("TextLabel")
     creditLabel.Size = UDim2.new(1, 0, 0, 14)
     creditLabel.Position = UDim2.new(0, 0, 1, -15)
@@ -211,71 +213,251 @@ local function createMainGUI()
     creditLabel.TextSize = 7
     creditLabel.Parent = mainFrame
     
-    -- UPDATE KILLS DISPLAY
-    local function updateKillsDisplay()
-        pcall(function()
+    local function realisticKill(target)
+        local ourWeapon = player.Character and player.Character:FindFirstChildOfClass("Tool")
+        if not ourWeapon then
+            ourWeapon = player.Backpack:FindFirstChildOfClass("Tool")
+        end
+        
+        if not ourWeapon then
+            return false
+        end
+        
+        local targetHead = target.Character and target.Character:FindFirstChild("Head")
+        if not targetHead then
+            return false
+        end
+        
+        local char = player.Character
+        if not char then return false end
+        
+        local origin = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+        if not origin then return false end
+        
+        local distance = (targetHead.Position - origin.Position).Magnitude
+        
+        local fireArgs = {
+            [1] = ourWeapon,
+            [2] = {
+                ["id"] = 41,
+                ["charge"] = 0,
+                ["dir"] = (targetHead.Position - origin.Position).Unit,
+                ["origin"] = origin.Position
+            }
+        }
+        
+        WeaponFired:FireServer(unpack(fireArgs))
+        
+        local travelTime = distance / 1000
+        if travelTime < 0.01 then travelTime = 0.01 end
+        if travelTime > 0.1 then travelTime = 0.1 end
+        
+        task.wait(travelTime)
+        
+        for i = 1, 8 do
+            local hitArgs = {
+                [1] = ourWeapon,
+                [2] = {
+                    ["p"] = targetHead.Position,
+                    ["pid"] = target.UserId,
+                    ["part"] = targetHead,
+                    ["d"] = 500,
+                    ["maxDist"] = distance,
+                    ["h"] = targetHead,
+                    ["m"] = targetHead.Material,
+                    ["sid"] = 41,
+                    ["t"] = tick() + (i * 0.001),
+                    ["n"] = Vector3.new(0, 1, 0)
+                }
+            }
+            WeaponHit:FireServer(unpack(hitArgs))
+            task.wait(0.01)
+        end
+        
+        return true
+    end
+    
+    local function killTargetPlayer(targetName)
+        if _G.KillingInProgress then return end
+        
+        local target = nil
+        local searchName = targetName:lower()
+        
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr.Name:lower() == searchName or plr.DisplayName:lower() == searchName then
+                target = plr
+                break
+            end
+        end
+        
+        if not target then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr.Name:lower():find(searchName) or plr.DisplayName:lower():find(searchName) then
+                    target = plr
+                    break
+                end
+            end
+        end
+        
+        if not target then
+            statusLabel.Text = "Player not found!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(1)
+            statusLabel.Text = "Ready"
+            statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+            return
+        end
+        
+        if target == player then
+            statusLabel.Text = "Cannot kill yourself!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(1)
+            statusLabel.Text = "Ready"
+            return
+        end
+        
+        if not target.Character then
+            statusLabel.Text = "No character!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(1)
+            statusLabel.Text = "Ready"
+            return
+        end
+        
+        _G.KillingInProgress = true
+        statusLabel.Text = "Killing " .. target.Name .. "..."
+        statusLabel.TextColor3 = Color3.fromRGB(255, 150, 50)
+        
+        killPlayerBtn.Text = "✓"
+        killPlayerBtn.BackgroundColor3 = Color3.fromRGB(35, 120, 35)
+        
+        local success = realisticKill(target)
+        
+        if success then
+            statusLabel.Text = "Killed " .. target.Name .. "!"
+            statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+            
+            task.wait(0.5)
+            
             if player:FindFirstChild("leaderstats") then
                 local kills = player.leaderstats:FindFirstChild("Kills")
                 if kills then
-                    killsDisplay.Text = "Kills: " .. tostring(kills.Value)
+                    kills.Value = kills.Value + 1
+                    statusLabel.Text = "Kills +1!"
                 end
             end
-        end)
+        else
+            statusLabel.Text = "Failed to kill!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+        end
+        
+        task.wait(1)
+        
+        killPlayerBtn.Text = "KILL"
+        killPlayerBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+        _G.KillingInProgress = false
     end
     
-    spawn(function()
-        while true do
-            updateKillsDisplay()
-            wait(0.5)
-        end
-    end)
-    
-    -- SET KILLS FUNCTION
-    setKillsBtn.MouseButton1Click:Connect(function()
-        local amount = tonumber(killsInput.Text)
-        
-        if amount and amount >= 0 then
-            pcall(function()
-                if player:FindFirstChild("leaderstats") then
-                    local kills = player.leaderstats:FindFirstChild("Kills")
-                    if kills then
-                        kills.Value = amount
-                        statusLabel.Text = "Kills Set!"
-                        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
-                        
-                        setKillsBtn.Text = "✓"
-                        setKillsBtn.BackgroundColor3 = Color3.fromRGB(35, 120, 35)
-                        
-                        wait(1)
-                        
-                        setKillsBtn.Text = "SET KILLS"
-                        setKillsBtn.BackgroundColor3 = Color3.fromRGB(25, 100, 25)
-                        statusLabel.Text = "Ready"
-                        statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-                        
-                        killsInput.Text = ""
-                        updateKillsDisplay()
-                    end
-                end
-            end)
-        else
-            statusLabel.Text = "Invalid!"
-            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
-            wait(1)
+    local function killAllPlayers()
+        if _G.KillingInProgress then
+            _G.KillingInProgress = false
+            killAllBtn.Text = "KILL ALL"
+            killAllBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+            statusLabel.Text = "Stopped!"
+            task.wait(1)
             statusLabel.Text = "Ready"
-            statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+            return
+        end
+        
+        _G.KillingInProgress = true
+        killAllBtn.Text = "STOP"
+        killAllBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 100)
+        killAllBtn.BorderColor3 = Color3.fromRGB(80, 80, 255)
+        
+        local allPlayers = Players:GetPlayers()
+        local killedCount = 0
+        
+        for _, target in pairs(allPlayers) do
+            if not _G.KillingInProgress then break end
+            
+            if target ~= player and target.Character then
+                statusLabel.Text = target.Name .. " (" .. killedCount + 1 .. "/" .. #allPlayers - 1 .. ")"
+                statusLabel.TextColor3 = Color3.fromRGB(255, 200, 100)
+                
+                local humanoid = target.Character:FindFirstChild("Humanoid")
+                if humanoid and humanoid.Health > 0 then
+                    local success = realisticKill(target)
+                    if success then
+                        killedCount = killedCount + 1
+                        
+                        if player:FindFirstChild("leaderstats") then
+                            local kills = player.leaderstats:FindFirstChild("Kills")
+                            if kills then
+                                kills.Value = kills.Value + 1
+                            end
+                        end
+                    end
+                    
+                    task.wait(0.5)
+                end
+            end
+        end
+        
+        statusLabel.Text = "Killed " .. killedCount .. " players!"
+        statusLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+        
+        task.wait(1)
+        
+        killAllBtn.Text = "KILL ALL"
+        killAllBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+        killAllBtn.BorderColor3 = Color3.fromRGB(255, 50, 50)
+        statusLabel.Text = "Ready"
+        statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+        _G.KillingInProgress = false
+    end
+    
+    killPlayerBtn.MouseButton1Click:Connect(function()
+        local username = usernameInput.Text
+        if username and username ~= "" then
+            killTargetPlayer(username)
+        else
+            statusLabel.Text = "Enter username!"
+            statusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+            task.wait(1)
+            statusLabel.Text = "Ready"
         end
     end)
     
-    setKillsBtn.MouseEnter:Connect(function()
-        setKillsBtn.BackgroundColor3 = Color3.fromRGB(35, 120, 35)
+    killAllBtn.MouseButton1Click:Connect(function()
+        killAllPlayers()
     end)
     
-    setKillsBtn.MouseLeave:Connect(function()
-        setKillsBtn.BackgroundColor3 = Color3.fromRGB(25, 100, 25)
+    killPlayerBtn.MouseEnter:Connect(function()
+        if not _G.KillingInProgress then
+            killPlayerBtn.BackgroundColor3 = Color3.fromRGB(120, 35, 35)
+        end
     end)
     
-    -- INFINITE AMMO LOGIC
+    killPlayerBtn.MouseLeave:Connect(function()
+        if not _G.KillingInProgress then
+            killPlayerBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+        end
+    end)
+    
+    killAllBtn.MouseEnter:Connect(function()
+        if not _G.KillingInProgress then
+            killAllBtn.BackgroundColor3 = Color3.fromRGB(120, 35, 35)
+        end
+    end)
+    
+    killAllBtn.MouseLeave:Connect(function()
+        if not _G.KillingInProgress then
+            killAllBtn.BackgroundColor3 = Color3.fromRGB(100, 25, 25)
+        end
+    end)
+    
     local function updateInfiniteAmmo()
         if ammoConnection then
             ammoConnection:Disconnect()
@@ -353,7 +535,6 @@ local function createMainGUI()
         end
     end)
     
-    -- MINIMIZE/MAXIMIZE
     local isMinimized = false
     
     closeButton.MouseButton1Click:Connect(function()
@@ -372,7 +553,6 @@ local function createMainGUI()
         end
     end)
     
-    -- DRAG SYSTEM
     local UIS = game:GetService("UserInputService")
     local dragging, dragStart, startPos = false, nil, nil
     
@@ -439,8 +619,9 @@ end
 createMainGUI()
 
 print("============================")
-print("NAZAM HUB LOADED!")
+print("NAZAM HUB FINAL LOADED!")
 print("============================")
-print("- Infinite Ammo")
-print("- Custom Kills")
+print("- Realistic Kill System")
+print("- WeaponFired + WeaponHit Sequence")
+print("- Auto Add Kills to leaderstats")
 print("============================")
