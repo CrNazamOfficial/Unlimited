@@ -1,0 +1,378 @@
+
+_G.InfiniteAmmoEnabled = false
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local player = Players.LocalPlayer
+
+local ammoConnection = nil
+local currentTool = nil
+
+local function createInfiniteAmmoGUI()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "InfiniteAmmoGUI"
+    gui.Parent = game.CoreGui
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    
+    local iconButton = Instance.new("ImageButton")
+    iconButton.Name = "MinimizedIcon"
+    iconButton.Size = UDim2.new(0, 35, 0, 35)
+    iconButton.Position = UDim2.new(0, 100, 0, 110)
+    iconButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    iconButton.BorderColor3 = Color3.fromRGB(255, 150, 50)
+    iconButton.BorderSizePixel = 2
+    iconButton.Image = ""
+    iconButton.Visible = false
+    iconButton.Active = true
+    iconButton.Parent = gui
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(0, 6)
+    iconCorner.Parent = iconButton
+    
+    local iconLabel = Instance.new("TextLabel")
+    iconLabel.Size = UDim2.new(1, 0, 1, 0)
+    iconLabel.BackgroundTransparency = 1
+    iconLabel.Text = "∞"
+    iconLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    iconLabel.Font = Enum.Font.GothamBold
+    iconLabel.TextSize = 20
+    iconLabel.Parent = iconButton
+    
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Name = "MainFrame"
+    mainFrame.Size = UDim2.new(0, 180, 0, 140)
+    mainFrame.Position = UDim2.new(0, 100, 0, 110)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    mainFrame.BorderColor3 = Color3.fromRGB(255, 150, 50)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.Active = true
+    mainFrame.Visible = true
+    mainFrame.Parent = gui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 8)
+    mainCorner.Parent = mainFrame
+    
+    local dragHandle = Instance.new("Frame")
+    dragHandle.Name = "DragHandle"
+    dragHandle.Size = UDim2.new(1, 0, 0, 25)
+    dragHandle.BackgroundTransparency = 1
+    dragHandle.Active = true
+    dragHandle.Parent = mainFrame
+    
+    local header = Instance.new("Frame")
+    header.Size = UDim2.new(1, 0, 0, 25)
+    header.BackgroundTransparency = 1
+    header.Parent = mainFrame
+    
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0.75, 0, 1, 0)
+    title.Position = UDim2.new(0, 6, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "INFINITE AMMO"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 11
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = header
+    
+    local closeButton = Instance.new("TextButton")
+    closeButton.Size = UDim2.new(0, 20, 0, 20)
+    closeButton.Position = UDim2.new(1, -23, 0.5, -10)
+    closeButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    closeButton.BorderColor3 = Color3.fromRGB(255, 150, 50)
+    closeButton.BorderSizePixel = 1
+    closeButton.Text = "X"
+    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeButton.Font = Enum.Font.GothamBold
+    closeButton.TextSize = 11
+    closeButton.Parent = header
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeButton
+    
+    closeButton.MouseEnter:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    end)
+    
+    closeButton.MouseLeave:Connect(function()
+        closeButton.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    end)
+    
+    local headerLine = Instance.new("Frame")
+    headerLine.Size = UDim2.new(0.92, 0, 0, 1)
+    headerLine.Position = UDim2.new(0.04, 0, 0, 26)
+    headerLine.BackgroundColor3 = Color3.fromRGB(255, 150, 50)
+    headerLine.BorderSizePixel = 0
+    headerLine.Parent = mainFrame
+    
+    local toggleBtn = Instance.new("TextButton")
+    toggleBtn.Size = UDim2.new(0.92, 0, 0, 26)
+    toggleBtn.Position = UDim2.new(0.04, 0, 0, 32)
+    toggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    toggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 60)
+    toggleBtn.BorderSizePixel = 1
+    toggleBtn.Text = "Infinite Ammo: OFF"
+    toggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+    toggleBtn.Font = Enum.Font.GothamBold
+    toggleBtn.TextSize = 10
+    toggleBtn.Parent = mainFrame
+    
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggleBtn
+    
+    local weaponLabel = Instance.new("TextLabel")
+    weaponLabel.Size = UDim2.new(0.92, 0, 0, 20)
+    weaponLabel.Position = UDim2.new(0.04, 0, 0, 63)
+    weaponLabel.BackgroundTransparency = 1
+    weaponLabel.Text = "Weapon: None"
+    weaponLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    weaponLabel.Font = Enum.Font.Gotham
+    weaponLabel.TextSize = 9
+    weaponLabel.TextXAlignment = Enum.TextXAlignment.Left
+    weaponLabel.Parent = mainFrame
+    
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(0.92, 0, 0, 18)
+    statusLabel.Position = UDim2.new(0.04, 0, 0, 83)
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.Text = "Status: Ready"
+    statusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    statusLabel.Font = Enum.Font.Gotham
+    statusLabel.TextSize = 9
+    statusLabel.TextXAlignment = Enum.TextXAlignment.Left
+    statusLabel.Parent = mainFrame
+    
+    local creditLabel = Instance.new("TextLabel")
+    creditLabel.Size = UDim2.new(1, 0, 0, 18)
+    creditLabel.Position = UDim2.new(0, 0, 1, -19)
+    creditLabel.BackgroundTransparency = 1
+    creditLabel.Text = "By: Nazam"
+    creditLabel.TextColor3 = Color3.fromRGB(120, 120, 120)
+    creditLabel.Font = Enum.Font.Gotham
+    creditLabel.TextSize = 9
+    creditLabel.Parent = mainFrame
+    
+    local function findAmmoValue(tool)
+        for _, child in pairs(tool:GetDescendants()) do
+            if child:IsA("IntValue") or child:IsA("NumberValue") then
+                local name = string.lower(child.Name)
+                if string.find(name, "ammo") or string.find(name, "mag") or string.find(name, "clip") then
+                    if not string.find(name, "max") and not string.find(name, "total") then
+                        return child
+                    end
+                end
+            end
+        end
+        return nil
+    end
+    
+    local function findMaxAmmoValue(tool)
+        for _, child in pairs(tool:GetDescendants()) do
+            if child:IsA("IntValue") or child:IsA("NumberValue") then
+                local name = string.lower(child.Name)
+                if string.find(name, "max") and (string.find(name, "ammo") or string.find(name, "mag") or string.find(name, "clip")) then
+                    return child
+                end
+            end
+        end
+        return nil
+    end
+    
+    local function updateInfiniteAmmo()
+        if _G.InfiniteAmmoEnabled then
+            if ammoConnection then
+                ammoConnection:Disconnect()
+                ammoConnection = nil
+            end
+            
+            ammoConnection = RunService.Heartbeat:Connect(function()
+                if player.Character then
+                    local tool = player.Character:FindFirstChildOfClass("Tool")
+                    
+                    if tool then
+                        if currentTool ~= tool then
+                            currentTool = tool
+                            weaponLabel.Text = "Weapon: " .. tool.Name
+                        end
+                        
+                        local ammoValue = findAmmoValue(tool)
+                        local maxAmmoValue = findMaxAmmoValue(tool)
+                        
+                        if ammoValue and maxAmmoValue then
+                            ammoValue.Value = maxAmmoValue.Value
+                        elseif ammoValue then
+                            if ammoValue.Value < 30 then
+                                ammoValue.Value = 30
+                            end
+                        end
+                        
+                        local config = tool:FindFirstChild("Configuration")
+                        if config then
+                            local currentAmmo = config:FindFirstChild("CurrentAmmo") or config:FindFirstChild("Ammo")
+                            local maxAmmo = config:FindFirstChild("MaxAmmo") or config:FindFirstChild("MagSize")
+                            
+                            if currentAmmo and maxAmmo then
+                                if currentAmmo:IsA("IntValue") or currentAmmo:IsA("NumberValue") then
+                                    currentAmmo.Value = maxAmmo.Value
+                                end
+                            elseif currentAmmo then
+                                if currentAmmo:IsA("IntValue") or currentAmmo:IsA("NumberValue") then
+                                    if currentAmmo.Value < 30 then
+                                        currentAmmo.Value = 30
+                                    end
+                                end
+                            end
+                        end
+                    else
+                        if currentTool then
+                            currentTool = nil
+                            weaponLabel.Text = "Weapon: None"
+                        end
+                    end
+                end
+            end)
+            
+            statusLabel.Text = "Status: Active - Ammo Locked"
+        else
+            if ammoConnection then
+                ammoConnection:Disconnect()
+                ammoConnection = nil
+            end
+            currentTool = nil
+            weaponLabel.Text = "Weapon: None"
+            statusLabel.Text = "Status: Ready"
+        end
+    end
+    
+    toggleBtn.MouseButton1Click:Connect(function()
+        _G.InfiniteAmmoEnabled = not _G.InfiniteAmmoEnabled
+        
+        if _G.InfiniteAmmoEnabled then
+            toggleBtn.Text = "Infinite Ammo: ON"
+            toggleBtn.TextColor3 = Color3.fromRGB(255, 200, 100)
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 75, 25)
+            toggleBtn.BorderColor3 = Color3.fromRGB(255, 150, 50)
+        else
+            toggleBtn.Text = "Infinite Ammo: OFF"
+            toggleBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            toggleBtn.BorderColor3 = Color3.fromRGB(60, 60, 60)
+        end
+        
+        updateInfiniteAmmo()
+    end)
+    
+    toggleBtn.MouseEnter:Connect(function()
+        if _G.InfiniteAmmoEnabled then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(120, 90, 30)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+        end
+    end)
+    
+    toggleBtn.MouseLeave:Connect(function()
+        if _G.InfiniteAmmoEnabled then
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(100, 75, 25)
+        else
+            toggleBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+        end
+    end)
+    
+    local isMinimized = false
+    
+    closeButton.MouseButton1Click:Connect(function()
+        if not isMinimized then
+            mainFrame.Visible = false
+            iconButton.Visible = true
+            isMinimized = true
+        end
+    end)
+    
+    iconButton.MouseButton1Click:Connect(function()
+        if isMinimized then
+            mainFrame.Visible = true
+            iconButton.Visible = false
+            isMinimized = false
+        end
+    end)
+    
+    local UIS = game:GetService("UserInputService")
+    local dragging, dragStart, startPos = false, nil, nil
+    
+    dragHandle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = mainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    UIS.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    local iconDragging, iconDragStart, iconStartPos, dragThreshold, iconDragMoved = false, nil, nil, 5, false
+    
+    iconButton.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            iconDragging = true
+            iconDragStart = input.Position
+            iconStartPos = iconButton.Position
+            iconDragMoved = false
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    iconDragging = false
+                    if not iconDragMoved and isMinimized then
+                        mainFrame.Visible = true
+                        iconButton.Visible = false
+                        isMinimized = false
+                    end
+                end
+            end)
+        end
+    end)
+    
+    UIS.InputChanged:Connect(function(input)
+        if iconDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - iconDragStart
+            if math.abs(delta.X) > dragThreshold or math.abs(delta.Y) > dragThreshold then
+                iconDragMoved = true
+            end
+            iconButton.Position = UDim2.new(iconStartPos.X.Scale, iconStartPos.X.Offset + delta.X, iconStartPos.Y.Scale, iconStartPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    player.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        currentTool = nil
+        weaponLabel.Text = "Weapon: None"
+    end)
+end
+
+createInfiniteAmmoGUI()
+
+print("=================================")
+print("INFINITE AMMO LOADED!")
+print("By: Nazam")
+print("=================================")
+print("Features:")
+print("- Infinite Ammo (Freeze at Max)")
+print("- No Reload Needed")
+print("- Auto Detect All Weapons")
+print("=================================")
