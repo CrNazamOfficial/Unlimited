@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
 
 local ammoConnection = nil
+local hookConnection = nil
 local currentTool = nil
 
 local function createInfiniteAmmoGUI()
@@ -151,7 +152,7 @@ local function createInfiniteAmmoGUI()
     ammoLabel.Size = UDim2.new(0.92, 0, 0, 20)
     ammoLabel.Position = UDim2.new(0.04, 0, 0, 97)
     ammoLabel.BackgroundTransparency = 1
-    ammoLabel.Text = "999/999"
+    ammoLabel.Text = "---"
     ammoLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
     ammoLabel.Font = Enum.Font.GothamBold
     ammoLabel.TextSize = 11
@@ -167,6 +168,19 @@ local function createInfiniteAmmoGUI()
     creditLabel.TextSize = 7
     creditLabel.Parent = mainFrame
     
+    local function hookAmmoChange(ammoValue)
+        if hookConnection then
+            hookConnection:Disconnect()
+        end
+        
+        hookConnection = ammoValue:GetPropertyChangedSignal("Value"):Connect(function()
+            if _G.InfiniteAmmoEnabled then
+                task.wait()
+                ammoValue.Value = 999
+            end
+        end)
+    end
+    
     local function updateInfiniteAmmo()
         if ammoConnection then
             ammoConnection:Disconnect()
@@ -174,7 +188,7 @@ local function createInfiniteAmmoGUI()
         end
         
         if _G.InfiniteAmmoEnabled then
-            ammoConnection = RunService.Heartbeat:Connect(function()
+            ammoConnection = RunService.RenderStepped:Connect(function()
                 if player.Character then
                     local tool = player.Character:FindFirstChildOfClass("Tool")
                     
@@ -182,6 +196,14 @@ local function createInfiniteAmmoGUI()
                         if currentTool ~= tool then
                             currentTool = tool
                             weaponLabel.Text = tool.Name
+                            
+                            local config = tool:FindFirstChild("Configuration")
+                            if config then
+                                local currentAmmo = config:FindFirstChild("CurrentAmmo")
+                                if currentAmmo then
+                                    hookAmmoChange(currentAmmo)
+                                end
+                            end
                         end
                         
                         local config = tool:FindFirstChild("Configuration")
@@ -189,8 +211,9 @@ local function createInfiniteAmmoGUI()
                             local currentAmmo = config:FindFirstChild("CurrentAmmo")
                             
                             if currentAmmo and (currentAmmo:IsA("IntValue") or currentAmmo:IsA("NumberValue")) then
-                                -- PAKSA SET KE 999 SETIAP FRAME
-                                currentAmmo.Value = 999
+                                if currentAmmo.Value ~= 999 then
+                                    currentAmmo.Value = 999
+                                end
                                 ammoLabel.Text = "999/999"
                             end
                         end
@@ -204,8 +227,12 @@ local function createInfiniteAmmoGUI()
                 end
             end)
             
-            statusLabel.Text = "LOCKED 999/999"
+            statusLabel.Text = "LOCKED"
         else
+            if hookConnection then
+                hookConnection:Disconnect()
+                hookConnection = nil
+            end
             currentTool = nil
             weaponLabel.Text = "None"
             statusLabel.Text = "Ready"
@@ -332,8 +359,6 @@ end
 createInfiniteAmmoGUI()
 
 print("=========================")
-print("INFINITE AMMO FINAL!")
+print("INFINITE AMMO V3!")
 print("By: Nazam")
-print("=========================")
-print("999/999 LOCKED!")
 print("=========================")
